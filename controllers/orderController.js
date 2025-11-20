@@ -6,9 +6,9 @@
 const Order = require("../models/orderModel");
 const PDFDocument = require("pdfkit");
 
-// ---------------------------
+// ===============================
 // 🟢 GET ALL ORDERS
-// ---------------------------
+// ===============================
 const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 }).lean();
@@ -26,15 +26,18 @@ const getOrders = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 🔵 GET SINGLE ORDER
-// ---------------------------
+// ===============================
 const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).lean();
-    if (!order)
-      return res.status(404).json({ success: false, message: "Order not found" });
-
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
     res.status(200).json({ success: true, order });
   } catch (error) {
     res.status(500).json({
@@ -45,19 +48,26 @@ const getOrderById = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 🟡 CREATE ORDER
-// ---------------------------
+// ===============================
 const createOrder = async (req, res) => {
   try {
     const { customer, cartItems, items, totalPrice, paymentMethod } = req.body;
+
     const finalItems = cartItems || items;
     const address = customer?.address || customer;
 
-    if (!customer?.name || !customer?.phone || !address?.line1 || !Array.isArray(finalItems) || finalItems.length === 0) {
+    if (
+      !customer?.name ||
+      !customer?.phone ||
+      !address?.line1 ||
+      !Array.isArray(finalItems) ||
+      finalItems.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Missing required customer or order details",
+        message: "Missing customer details or cart items",
       });
     }
 
@@ -80,6 +90,7 @@ const createOrder = async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
+
     res.status(201).json({
       success: true,
       message: "Order placed successfully!",
@@ -94,16 +105,23 @@ const createOrder = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 🟠 UPDATE ORDER
-// ---------------------------
+// ===============================
 const updateOrder = async (req, res) => {
   try {
-    const updates = req.body;
-    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, updates, { new: true });
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
 
-    if (!updatedOrder)
-      return res.status(404).json({ success: false, message: "Order not found" });
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -119,14 +137,19 @@ const updateOrder = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 🔴 DELETE ORDER
-// ---------------------------
+// ===============================
 const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    if (!order)
-      return res.status(404).json({ success: false, message: "Order not found" });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
 
     await Order.findByIdAndDelete(req.params.id);
 
@@ -143,12 +166,14 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 📊 GET ORDERS BY STATUS
-// ---------------------------
+// ===============================
 const getOrdersByStatus = async (req, res) => {
   try {
-    const orders = await Order.find({ orderStatus: req.params.status })
+    const orders = await Order.find({
+      orderStatus: req.params.status,
+    })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -166,25 +191,28 @@ const getOrdersByStatus = async (req, res) => {
   }
 };
 
-// ---------------------------
+// ===============================
 // 🧾 GENERATE RECEIPT (PDF → MongoDB)
-// ---------------------------
+// ===============================
 const generateOrderReceipt = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    if (!order)
-      return res.status(404).json({ success: false, message: "Order not found" });
 
-    // PDF in memory
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
     const doc = new PDFDocument({ margin: 40 });
     let buffers = [];
 
-    doc.on("data", buffers.push.bind(buffers));
-
+    doc.on("data", (chunk) => buffers.push(chunk));
     doc.on("end", async () => {
       const pdfBuffer = Buffer.concat(buffers);
 
-      // Save PDF in MongoDB
+      // Save into Mongo
       order.receipt = {
         pdf: pdfBuffer,
         createdAt: new Date(),
@@ -201,13 +229,13 @@ const generateOrderReceipt = async (req, res) => {
       res.send(pdfBuffer);
     });
 
-    // PDF Content
+    // PDF content
     doc.fontSize(22).text("🛍️ Saheli Store", { align: "center" });
     doc.moveDown();
     doc.fontSize(14).text("Order Receipt", { align: "center" });
     doc.moveDown(2);
 
-    doc.fontSize(12).text(`Customer: ${order.customer.name}`);
+    doc.text(`Customer: ${order.customer.name}`);
     doc.text(`Phone: ${order.customer.phone}`);
 
     if (order.customer.address) {
@@ -218,8 +246,10 @@ const generateOrderReceipt = async (req, res) => {
     doc.moveDown();
     doc.text("Items:", { underline: true });
 
-    (order.cartItems || []).forEach((item, i) => {
-      doc.text(`${i + 1}. ${item.title} (x${item.qty}) — ₹${item.price * item.qty}`);
+    order.cartItems.forEach((item, i) => {
+      doc.text(
+        `${i + 1}. ${item.title} (x${item.qty}) — ₹${item.price * item.qty}`
+      );
     });
 
     doc.moveDown();
@@ -238,9 +268,39 @@ const generateOrderReceipt = async (req, res) => {
   }
 };
 
-// ---------------------------
-// 📦 EXPORT CONTROLLERS
-// ---------------------------
+// ===============================
+// 🟣 DOWNLOAD STORED RECEIPT
+// ===============================
+const downloadReceipt = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order || !order.receipt?.pdf) {
+      return res.status(404).json({
+        success: false,
+        message: "Receipt not found",
+      });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Receipt_${order._id}.pdf`
+    );
+
+    res.send(order.receipt.pdf);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to download receipt",
+      error: error.message,
+    });
+  }
+};
+
+// ===============================
+// EXPORT
+// ===============================
 module.exports = {
   getOrders,
   getOrderById,
@@ -249,4 +309,5 @@ module.exports = {
   deleteOrder,
   getOrdersByStatus,
   generateOrderReceipt,
+  downloadReceipt,
 };

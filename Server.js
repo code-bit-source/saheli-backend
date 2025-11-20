@@ -34,11 +34,12 @@ connectDB();
 // -------------------------
 // Routes
 // -------------------------
-const productRoutes = require("./routes/productRoutes");
+const productRoutes = require("./routes/productRoutes.js");
 const orderRoutes = require("./routes/orderRoutes");
 
 app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
+app.use("/api/orders", orderRoutes );
+// console.log(orderRoutes);
 
 // -------------------------
 // Root API Info
@@ -74,4 +75,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+
+// app.listen(5000 , ()=>{
+//   console.log("server is runnning...");
+  
+// } )
 module.exports = app;
