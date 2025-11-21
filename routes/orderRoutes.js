@@ -1,6 +1,6 @@
 // ==========================
 // File: routes/orderRoutes.js
-// Saheli Store – Final Order Routes (Vercel + MongoDB Safe)
+// Saheli Store – FINAL FIXED VERSION (No Route Conflicts)
 // ==========================
 
 const express = require("express");
@@ -24,10 +24,11 @@ const {
 // 🔵 Create new order
 router.post("/", createOrder);
 
-// 🧾 Generate Receipt (Memory PDF → MongoDB)
+// 🧾 Generate Receipt (Creates + Returns pdfUrl)
 router.get("/receipt/:id", generateOrderReceipt);
 
-// 🧾 Download Stored Receipt (MongoDB PDF → User Download)
+// 🧾 Download Stored Receipt (PDF Buffer → Browser)
+// 🚫 MUST COME BEFORE "/:id" (Otherwise conflict)
 router.get("/receipt/download/:id", downloadReceipt);
 
 // =======================================
@@ -41,6 +42,7 @@ router.get("/", getOrders);
 router.get("/status/:status", getOrdersByStatus);
 
 // 📄 Get single order
+// ⚠ MUST BE AT BOTTOM (Catch-all param route)
 router.get("/:id", getOrderById);
 
 // 🟠 Update order
