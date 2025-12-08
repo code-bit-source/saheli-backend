@@ -49,7 +49,7 @@ app.use(compression());
 
 // ✅ Body parser
 app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
