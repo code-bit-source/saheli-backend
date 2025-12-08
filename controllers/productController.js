@@ -115,8 +115,9 @@ const createProduct = async (req, res) => {
       category: data.category?.trim() || "Uncategorized",
       description: data.description?.trim() || "",
       image:
-        data.image ||
-        "https://via.placeholder.com/300x200.png?text=Saheli+Product",
+  data.image?.trim() ||
+  "https://via.placeholder.com/300x200.png?text=Saheli+Product",
+
       recommended: !!data.recommended,
       bestSeller: !!data.bestSeller,
       discount: Math.max(0, Math.min(100, Number(data.discount) || 0)),

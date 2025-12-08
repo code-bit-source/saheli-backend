@@ -77,18 +77,21 @@ const productSchema = new mongoose.Schema(
     },
 
     // 🖼️ IMAGE HANDLING
-    image: {
+ // 🖼️ IMAGE HANDLING (✅ FIXED – EMPTY ALLOWED + URL/BASE64 SAFE)
+image: {
   type: String,
   trim: true,
   default: "https://via.placeholder.com/300x200.png?text=Saheli+Product",
   validate: {
     validator: function (v) {
-      // Allow http, https, or base64 (data:image/)
+      // ✅ allow empty, http, https, or base64
+      if (!v || v.length === 0) return true;
       return /^https?:\/\//.test(v) || v.startsWith("data:image/");
     },
     message: "Image must be a valid URL or Base64 data URI",
   },
 },
+
 
     // 📦 METADATA
     addedAt: {
