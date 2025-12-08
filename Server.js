@@ -9,6 +9,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
 const connectDB = require("./config/db");
+const path = require("path"); // ✅ ADD THIS
 
 dotenv.config();
 const app = express();
@@ -17,7 +18,6 @@ const app = express();
 // Security + Performance Middleware
 // -------------------------
 
-// CORS – allow all frontend origins including Vercel
 app.use(
   cors({
     origin: "*",
@@ -26,7 +26,6 @@ app.use(
   })
 );
 
-// Helmet – disable some policies to avoid blocking React app on Vercel
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -34,17 +33,19 @@ app.use(
   })
 );
 
-// GZIP Compression
 app.use(compression());
 
-// JSON Parser
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
-// Morgan (logging)
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
+
+// ===============================
+// ✅ ✅ ✅ RECEIPT STATIC FILE SUPPORT (VERY IMPORTANT)
+// ===============================
+app.use("/receipts", express.static(path.join(__dirname, "public/receipts")));
 
 // -------------------------
 // Connect MongoDB
@@ -96,6 +97,11 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------------
-// Export for Vercel
+// ✅ SERVER START (LOCAL HOSTING)
 // -------------------------
+// app.listen(3000, () => {
+//   console.log("✅ Server running on http://localhost:3000");
+// });
+
 module.exports = app;
+

@@ -1,7 +1,6 @@
 // ==========================
 // File: models/orderModel.js
-// Saheli Store – FINAL Optimized Order Schema
-// (PDF Buffer Storage + Hooks + Virtuals + Indexes)
+// Saheli Store – FINAL Optimized Order Schema (FAST + SAFE + FILE BASED RECEIPT)
 // ==========================
 
 const mongoose = require("mongoose");
@@ -21,8 +20,8 @@ const orderSchema = new mongoose.Schema(
       phone: {
         type: String,
         required: [true, "Please add phone number"],
-        match: [/^[0-9]{10,11}$/, "Please enter a valid 10- or 11-digit phone number"],
-        set: (val) => val.replace(/^0+/, ""), // remove leading zeros
+        match: [/^[0-9]{10,11}$/, "Enter valid 10–11 digit phone number"],
+        set: (val) => val.replace(/^0+/, ""),
       },
       email: {
         type: String,
@@ -31,7 +30,7 @@ const orderSchema = new mongoose.Schema(
         default: "",
       },
       address: {
-        line1: { type: String, required: [true, "Please add address line"] },
+        line1: { type: String, required: true },
         city: { type: String, default: "" },
         state: { type: String, default: "" },
         pincode: { type: String, default: "" },
@@ -42,7 +41,7 @@ const orderSchema = new mongoose.Schema(
     cartItems: [
       {
         productId: {
-          type: String, // stored as string for easy referencing
+          type: String,
           required: true,
           trim: true,
         },
@@ -57,7 +56,7 @@ const orderSchema = new mongoose.Schema(
     // 💰 PAYMENT INFO
     totalPrice: {
       type: Number,
-      required: [true, "Please provide total price"],
+      required: true,
       min: 0,
     },
     paymentMethod: {
@@ -78,9 +77,9 @@ const orderSchema = new mongoose.Schema(
       default: "Pending",
     },
 
-    // 🧾 RECEIPT (Vercel + MongoDB Safe)
+    // 🧾 RECEIPT (✅ FILE BASED – FAST & SAFE)
     receipt: {
-      pdf: Buffer,                 // 💾 store PDF binary here
+      pdfUrl: { type: String, default: null },   // ✅ URL only (NO BUFFER)
       createdAt: { type: Date, default: null },
     },
 
@@ -106,13 +105,13 @@ const orderSchema = new mongoose.Schema(
 // 🔹 VIRTUAL FIELDS
 // ==========================
 
-// Total quantity of all items
+// ✅ Total quantity of all items
 orderSchema.virtual("totalItems").get(function () {
   if (!Array.isArray(this.cartItems)) return 0;
   return this.cartItems.reduce((sum, item) => sum + (item.qty || 0), 0);
 });
 
-// Auto Receipt Title
+// ✅ Auto Receipt Title
 orderSchema.virtual("receiptTitle").get(function () {
   const safeName = this.customer?.name
     ? this.customer.name.replace(/\s+/g, "_")
@@ -124,7 +123,7 @@ orderSchema.virtual("receiptTitle").get(function () {
 // 🔹 MIDDLEWARE / HOOKS
 // ==========================
 
-// Auto-set deliveredAt on status change
+// ✅ Auto-set deliveredAt on status change
 orderSchema.pre("save", function (next) {
   if (this.isModified("orderStatus") && this.orderStatus === "Delivered") {
     this.deliveredAt = new Date();
@@ -132,7 +131,7 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-// Normalize cart items before save
+// ✅ Normalize cart items before save
 orderSchema.pre("save", function (next) {
   if (Array.isArray(this.cartItems)) {
     this.cartItems = this.cartItems.map((item) => ({
@@ -145,18 +144,22 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-// Auto exclude soft deleted items
+// ✅ Auto exclude soft deleted items
 orderSchema.pre("find", function () {
+  this.where({ isDeleted: false });
+});
+orderSchema.pre("findOne", function () {
   this.where({ isDeleted: false });
 });
 
 // ==========================
-// 🔹 INDEXES
+// 🔹 INDEXES (🔥 SPEED BOOST)
 // ==========================
 orderSchema.index({ "customer.phone": 1 });
 orderSchema.index({ "customer.name": 1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ createdAt: -1 });
 orderSchema.index({ orderedAt: -1 });
 
 // ==========================

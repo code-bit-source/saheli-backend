@@ -1,19 +1,35 @@
 // ==========================
 // File: controllers/orderController.js
-// Saheli Store – FULL FIXED VERSION (Working Receipts)
+// Saheli Store – FULL OPTIMIZED VERSION (FAST + SAFE + ALL FEATURES)
 // ==========================
 
 const Order = require("../models/orderModel");
 const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 
 // ===============================
-// GET ALL ORDERS
+// GET ALL ORDERS (PAGINATION + FAST)
 // ===============================
 const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 }).lean();
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select("-receipt.pdf") // ✅ heavy buffer skip
+      .lean();
+
+    const total = await Order.countDocuments();
+
     res.status(200).json({
       success: true,
+      total,
+      page,
       count: orders.length,
       orders,
     });
@@ -27,22 +43,30 @@ const getOrders = async (req, res) => {
 };
 
 // ===============================
-// GET SINGLE ORDER
+// GET SINGLE ORDER (FAST)
 // ===============================
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).lean();
+    const order = await Order.findById(req.params.id)
+      .select("-receipt.pdf")
+      .lean();
+
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
+
     res.status(200).json({ success: true, order });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch order", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch order",
+      error: error.message,
+    });
   }
 };
 
 // ===============================
-// CREATE ORDER
+// CREATE ORDER (SAFE)
 // ===============================
 const createOrder = async (req, res) => {
   try {
@@ -91,7 +115,11 @@ const createOrder = async (req, res) => {
       order: savedOrder,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to create order", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create order",
+      error: error.message,
+    });
   }
 };
 
@@ -100,10 +128,15 @@ const createOrder = async (req, res) => {
 // ===============================
 const updateOrder = async (req, res) => {
   try {
-    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    }).select("-receipt.pdf");
 
     if (!updatedOrder) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
     res.status(200).json({
@@ -112,7 +145,11 @@ const updateOrder = async (req, res) => {
       order: updatedOrder,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to update order", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order",
+      error: error.message,
+    });
   }
 };
 
@@ -146,7 +183,7 @@ const deleteOrder = async (req, res) => {
 };
 
 // ===============================
-// GET BY STATUS
+// GET BY STATUS (WITH LIMIT)
 // ===============================
 const getOrdersByStatus = async (req, res) => {
   try {
@@ -154,16 +191,26 @@ const getOrdersByStatus = async (req, res) => {
       orderStatus: req.params.status,
     })
       .sort({ createdAt: -1 })
+      .limit(10)
+      .select("-receipt.pdf")
       .lean();
 
-    res.status(200).json({ success: true, count: orders.length, orders });
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch filtered orders", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch filtered orders",
+      error: error.message,
+    });
   }
 };
 
 // ===============================
-// GENERATE RECEIPT (PDF + URL)
+// GENERATE RECEIPT (FILE + URL)
 // ===============================
 const generateOrderReceipt = async (req, res) => {
   try {
@@ -176,30 +223,15 @@ const generateOrderReceipt = async (req, res) => {
       });
     }
 
+    const receiptsDir = path.join(__dirname, "../public/receipts");
+    if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
+
+    const filePath = path.join(receiptsDir, `Receipt_${order._id}.pdf`);
     const doc = new PDFDocument({ margin: 40 });
-    let buffers = [];
+    const stream = fs.createWriteStream(filePath);
 
-    doc.on("data", (chunk) => buffers.push(chunk));
-    doc.on("end", async () => {
-      const pdfBuffer = Buffer.concat(buffers);
+    doc.pipe(stream);
 
-      // Store PDF + URL inside DB
-      order.receipt = {
-        pdf: pdfBuffer,
-        pdfUrl: `/api/orders/receipt/download/${order._id}`,
-        createdAt: new Date(),
-      };
-
-      await order.save();
-
-      return res.status(200).json({
-        success: true,
-        message: "Receipt generated successfully",
-        pdfUrl: order.receipt.pdfUrl,
-      });
-    });
-
-    // PDF Content
     doc.fontSize(22).text("Saheli Store", { align: "center" });
     doc.moveDown();
     doc.fontSize(14).text("Order Receipt", { align: "center" });
@@ -227,6 +259,21 @@ const generateOrderReceipt = async (req, res) => {
     doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
 
     doc.end();
+
+    stream.on("finish", async () => {
+      order.receipt = {
+        pdfUrl: `/receipts/Receipt_${order._id}.pdf`,
+        createdAt: new Date(),
+      };
+
+      await order.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Receipt generated successfully",
+        pdfUrl: order.receipt.pdfUrl,
+      });
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -237,26 +284,29 @@ const generateOrderReceipt = async (req, res) => {
 };
 
 // ===============================
-// DOWNLOAD RECEIPT (From DB Buffer)
+// DOWNLOAD RECEIPT (FROM FILE)
 // ===============================
 const downloadReceipt = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (!order?.receipt?.pdf) {
+    if (!order?.receipt?.pdfUrl) {
       return res.status(404).json({
         success: false,
         message: "Receipt not found",
       });
     }
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename=Receipt_${order._id}.pdf`
-    );
+    const filePath = path.join(__dirname, "../public", order.receipt.pdfUrl);
 
-    res.send(order.receipt.pdf);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "PDF file missing",
+      });
+    }
+
+    res.download(filePath);
   } catch (error) {
     res.status(500).json({
       success: false,
