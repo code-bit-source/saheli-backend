@@ -1,6 +1,6 @@
 // ==========================
 // File: routes/productRoutes.js
-// Saheli Store – Final Optimized Product Routes
+// Saheli Store – FINAL ✅ OPTIMIZED PRODUCT ROUTES
 // ==========================
 
 const express = require("express");
@@ -17,30 +17,29 @@ const {
 } = require("../controllers/productController");
 
 // =======================================
-// PUBLIC ROUTES
+// ✅ PUBLIC ROUTES
 // =======================================
 
-// 🟢 Get all products (With filters, search, category, price range)
+// 🟢 Get all products (filters, search, category, price range)
 router.get("/", getProducts);
 
-// 🟢 Get single product (Cleaner route)
+// 🟢 Get single product by ID (⚠️ Keep AFTER "/" route)
 router.get("/:id", getProductById);
-// ⚠️ NOTE: This must stay AFTER "/" listing route
 
 // =======================================
-// ADMIN ROUTES
+// ✅ ADMIN ROUTES
 // =======================================
 
 // 🟡 Create product
 router.post("/", createProduct);
+
+// 🟣 Toggle recommended / bestSeller (⚠️ Before PUT/DELETE for safety)
+router.patch("/:id/toggle", toggleHighlight);
 
 // 🟠 Update product
 router.put("/:id", updateProduct);
 
 // 🔴 Delete product
 router.delete("/:id", deleteProduct);
-
-// 🟣 Toggle recommended/bestSeller
-router.patch("/:id/toggle", toggleHighlight);
 
 module.exports = router;

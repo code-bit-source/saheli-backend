@@ -1,7 +1,7 @@
 // ==========================
 // Saheli Store – FINAL SERVER ✅
 // File Location: api/index.js
-// Works on: Vercel + Localhost
+// Works on: ✅ Vercel + ✅ Localhost
 // ==========================
 
 const express = require("express");
@@ -10,7 +10,6 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
 const connectDB = require("../config/db");
-const serverless = require("serverless-http"); // ✅ Wrapper for Vercel
 
 dotenv.config();
 const app = express();
@@ -67,16 +66,19 @@ if (!isDBConnected) {
 }
 
 // ===============================
-// ✅ API ROUTES (NO EXTRA /api HERE ❗)
+// ✅ ✅ ✅ API ROUTES (FINAL & CORRECT)
 // ===============================
 const productRoutes = require("../routes/productRoutes.js");
 const orderRoutes = require("../routes/orderRoutes.js");
 
-app.use("/products", productRoutes); // Final URL → /api/products
-app.use("/orders", orderRoutes);     // Final URL → /api/orders
+// ✅ FINAL URLs:
+// https://your-app.vercel.app/api/products
+// https://your-app.vercel.app/api/orders
+app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
 
 // ===============================
-// ✅ ROOT ROUTE (OPTIONAL HEALTH CHECK)
+// ✅ ROOT ROUTE (HEALTH CHECK)
 // ===============================
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -94,7 +96,7 @@ app.get("/", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route not found → ${req.originalUrl}`,
+    message: `❌ Route not found → ${req.originalUrl}`,
   });
 });
 
@@ -115,6 +117,8 @@ app.use((err, req, res, next) => {
 });
 
 // ===============================
-// ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL SERVERLESS)
+// ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL)
+// ❌ app.listen() YAHAN **BILKUL NAHI** HOGA
 // ===============================
-module.exports = serverless(app);
+
+module.exports = app;

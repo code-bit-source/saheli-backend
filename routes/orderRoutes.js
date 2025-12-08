@@ -1,6 +1,6 @@
 // ==========================
 // File: routes/orderRoutes.js
-// Saheli Store – FINAL VERCEL + BUFFER SAFE VERSION ✅
+// Saheli Store – FINAL ✅ VERCEL + BUFFER SAFE VERSION
 // ==========================
 
 const express = require("express");
@@ -31,19 +31,19 @@ router.get("/receipt/download/:id", downloadReceipt);
 router.get("/receipt/:id", generateOrderReceipt);
 
 // =======================================
-// ✅ ADMIN ROUTES (Protect later with auth middleware)
+// ✅ ADMIN ROUTES (Protect later with auth)
 // =======================================
 
-// 📦 Get all orders (with pagination)
+// 📦 Get all orders (with pagination / filters)
 router.get("/", getOrders);
 
 // 🔎 Filter orders by status
 router.get("/status/:status", getOrdersByStatus);
 
-// 🟠 Update order (Only status & payment allowed)
+// 🟠 Update order (Status / Payment)
 router.put("/:id", updateOrder);
 
-// 🔴 Delete order (Soft delete recommended)
+// 🔴 Delete order
 router.delete("/:id", deleteOrder);
 
 // 📄 Get single order by ID (⚠️ ALWAYS LAST)

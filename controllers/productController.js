@@ -1,34 +1,31 @@
 // ==========================
 // File: controllers/productController.js
-// Saheli Store – Final Optimized Product Controller
-// (Ultra-Fast + Safe for Vercel + Clean Code)
+// Saheli Store – FINAL ✅ PRODUCTION + VERCEL SAFE VERSION
 // ==========================
 
 const Product = require("../models/productModel");
 
-// 🧠 In-memory cache
-let productCache = [];
-let cacheTime = 0;
-const CACHE_DURATION = 1000; // 10 seconds
+// 🧠 In-memory query-based cache
+let productCache = new Map();
+const CACHE_DURATION = 10000; // ✅ 10 seconds
 
 // ---------------------------
-// 🟢 GET ALL PRODUCTS (Public + Admin)
+// ✅ GET ALL PRODUCTS (CACHE + FILTER SAFE)
 // ---------------------------
 const getProducts = async (req, res) => {
   try {
-    const now = Date.now();
+    const cacheKey = JSON.stringify(req.query);
+    const cached = productCache.get(cacheKey);
 
-    // 🍀 Serve from cache
-    if (productCache.length && now - cacheTime < CACHE_DURATION) {
+    if (cached && Date.now() - cached.time < CACHE_DURATION) {
       return res.status(200).json({
         success: true,
-        count: productCache.length,
+        count: cached.data.length,
         fromCache: true,
-        products: productCache,
+        products: cached.data,
       });
     }
 
-    // -------- APPLY FILTERS --------
     const { category, minPrice, maxPrice, search, bestSeller, recommended } =
       req.query;
 
@@ -52,14 +49,11 @@ const getProducts = async (req, res) => {
       ];
     }
 
-    // ⚡ Fast query with lean()
     const products = await Product.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
-    // Save cache
-    productCache = products;
-    cacheTime = Date.now();
+    productCache.set(cacheKey, { data: products, time: Date.now() });
 
     return res.status(200).json({
       success: true,
@@ -77,21 +71,19 @@ const getProducts = async (req, res) => {
 };
 
 // ---------------------------
-// 🔵 GET SINGLE PRODUCT
+// ✅ GET SINGLE PRODUCT
 // ---------------------------
 const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).lean();
+
     if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    return res.status(200).json({
-      success: true,
-      product,
-    });
+    return res.status(200).json({ success: true, product });
   } catch (error) {
     console.error("❌ Error fetching product:", error);
     return res.status(500).json({
@@ -103,23 +95,23 @@ const getProductById = async (req, res) => {
 };
 
 // ---------------------------
-// 🟡 CREATE PRODUCT
+// ✅ CREATE PRODUCT (STRICT VALIDATION)
 // ---------------------------
 const createProduct = async (req, res) => {
   try {
     const data = req.body;
 
-    if (!data.title || data.price === undefined) {
+    if (!data.title || data.price === undefined || isNaN(Number(data.price))) {
       return res.status(400).json({
         success: false,
-        message: "Please provide title & price",
+        message: "Please provide valid title & price",
       });
     }
 
     const newProduct = new Product({
       title: data.title.trim(),
       price: Number(data.price),
-      stock: data.stock || 10,
+      stock: Number(data.stock) || 10,
       category: data.category?.trim() || "Uncategorized",
       description: data.description?.trim() || "",
       image:
@@ -133,9 +125,7 @@ const createProduct = async (req, res) => {
 
     const savedProduct = await newProduct.save();
 
-    // 🚮 Invalidate Cache
-    productCache = [];
-    cacheTime = 0;
+    productCache.clear(); // ✅ cache reset
 
     return res.status(201).json({
       success: true,
@@ -153,7 +143,7 @@ const createProduct = async (req, res) => {
 };
 
 // ---------------------------
-// 🟠 UPDATE PRODUCT
+// ✅ UPDATE PRODUCT
 // ---------------------------
 const updateProduct = async (req, res) => {
   try {
@@ -170,7 +160,7 @@ const updateProduct = async (req, res) => {
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updates, {
       new: true,
-    });
+    }).lean();
 
     if (!updated) {
       return res.status(404).json({
@@ -179,9 +169,7 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    // Clear cache
-    productCache = [];
-    cacheTime = 0;
+    productCache.clear();
 
     return res.status(200).json({
       success: true,
@@ -199,7 +187,7 @@ const updateProduct = async (req, res) => {
 };
 
 // ---------------------------
-// 🔴 DELETE PRODUCT
+// ✅ DELETE PRODUCT
 // ---------------------------
 const deleteProduct = async (req, res) => {
   try {
@@ -212,9 +200,7 @@ const deleteProduct = async (req, res) => {
       });
     }
 
-    // Clear cache
-    productCache = [];
-    cacheTime = 0;
+    productCache.clear();
 
     return res.status(200).json({
       success: true,
@@ -231,7 +217,7 @@ const deleteProduct = async (req, res) => {
 };
 
 // ---------------------------
-// 🟣 Toggle Highlight (recommended / bestSeller)
+// ✅ TOGGLE HIGHLIGHT (OPTIMIZED)
 // ---------------------------
 const toggleHighlight = async (req, res) => {
   try {
@@ -245,6 +231,7 @@ const toggleHighlight = async (req, res) => {
     }
 
     const product = await Product.findById(req.params.id);
+
     if (!product)
       return res
         .status(404)
@@ -253,9 +240,7 @@ const toggleHighlight = async (req, res) => {
     product[field] = !product[field];
     await product.save();
 
-    // Clear cache
-    productCache = [];
-    cacheTime = 0;
+    productCache.clear();
 
     return res.status(200).json({
       success: true,
@@ -273,7 +258,7 @@ const toggleHighlight = async (req, res) => {
 };
 
 // ==========================
-// EXPORT
+// ✅ EXPORT
 // ==========================
 module.exports = {
   getProducts,
