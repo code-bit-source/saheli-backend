@@ -1,43 +1,31 @@
-// ==========================
-// Saheli Store – FINAL SERVER ✅
-// File Location: api/index.js
-// Works on: ✅ Vercel + ✅ Localhost
-// ==========================
-
+ 
 const express = require("express");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
+const cors = require("cors");
 const connectDB = require("../config/db");
 
 dotenv.config();
 const app = express();
 
-// ===============================
-// ✅ CORS SETUP (VERCEL SAFE)
-// ===============================
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+ 
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // ✅ local admin
+      "https://saheli-store-in.vercel.app", // ✅ live frontend
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+ 
+app.options("*", cors());
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
-
-// ===============================
-// ✅ SECURITY + PERFORMANCE
-// ===============================
+ 
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -47,39 +35,29 @@ app.use(
 
 app.use(compression());
 
-// ✅ Body parser
+ 
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
-
-// ===============================
-// ✅ ✅ ✅ SAFE MONGODB CONNECTION
-// ===============================
+ 
 let isDBConnected = false;
 
 if (!isDBConnected) {
   connectDB();
   isDBConnected = true;
 }
-
-// ===============================
-// ✅ ✅ ✅ API ROUTES (FINAL & CORRECT)
-// ===============================
+ 
 const productRoutes = require("../routes/productRoutes.js");
 const orderRoutes = require("../routes/orderRoutes.js");
 
-// ✅ FINAL URLs:
-// https://your-app.vercel.app/api/products
-// https://your-app.vercel.app/api/orders
+ 
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 
-// ===============================
-// ✅ ROOT ROUTE (HEALTH CHECK)
-// ===============================
+ 
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -89,10 +67,7 @@ app.get("/", (req, res) => {
     time: new Date().toISOString(),
   });
 });
-
-// ===============================
-// ✅ 404 HANDLER
-// ===============================
+ 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -100,9 +75,7 @@ app.use((req, res) => {
   });
 });
 
-// ===============================
-// ✅ GLOBAL ERROR HANDLER
-// ===============================
+ 
 app.use((err, req, res, next) => {
   console.error("❌ GLOBAL SERVER ERROR:", err);
 
@@ -116,9 +89,5 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ===============================
-// ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL)
-// ❌ app.listen() YAHAN **BILKUL NAHI** HOGA
-// ===============================
-
+ 
 module.exports = app;
