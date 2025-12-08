@@ -10,6 +10,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
 const connectDB = require("../config/db");
+const serverless = require("serverless-http"); // ✅ Wrapper for Vercel
 
 dotenv.config();
 const app = express();
@@ -71,8 +72,8 @@ if (!isDBConnected) {
 const productRoutes = require("../routes/productRoutes.js");
 const orderRoutes = require("../routes/orderRoutes.js");
 
-app.use("/products", productRoutes); // ✅ FINAL URL → /api/products
-app.use("/orders", orderRoutes);     // ✅ FINAL URL → /api/orders
+app.use("/products", productRoutes); // Final URL → /api/products
+app.use("/orders", orderRoutes);     // Final URL → /api/orders
 
 // ===============================
 // ✅ ROOT ROUTE (OPTIONAL HEALTH CHECK)
@@ -116,4 +117,4 @@ app.use((err, req, res, next) => {
 // ===============================
 // ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL SERVERLESS)
 // ===============================
-module.exports = app;
+module.exports = serverless(app);
