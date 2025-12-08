@@ -7,7 +7,7 @@ const dotenv = require("dotenv");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
-const connectDB = require("./config/db");
+const connectDB = require("../config/db");
 
 dotenv.config();
 const app = express();
@@ -67,8 +67,8 @@ if (!isDBConnected) {
 // ===============================
 // ✅ API ROUTES
 // ===============================
-const productRoutes = require("./routes/productRoutes");
-const orderRoutes = require("./routes/orderRoutes");
+const productRoutes = require("../routes/productRoutes");
+const orderRoutes = require("../routes/orderRoutes");
 
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);

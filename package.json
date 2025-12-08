@@ -2,11 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Saheli Store Backend API",
-  "main": "Server.js",
+  "main": "api/index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node Server.js",
-    "dev": "nodemon Server.js"
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js"
   },
   "keywords": [],
   "author": "Amrit Kumar",
