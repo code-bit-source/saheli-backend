@@ -1,5 +1,5 @@
 // ==========================
-// Saheli Store – FINAL SERVER (Vercel + Localhost 100% Working)
+// Saheli Store – FINAL SERVER ✅ (Vercel + Localhost 100% SAFE)
 // ==========================
 
 const express = require("express");
@@ -8,7 +8,6 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
 const connectDB = require("./config/db");
-const path = require("path");
 
 dotenv.config();
 const app = express();
@@ -27,16 +26,16 @@ app.use((req, res, next) => {
     "Content-Type, Authorization"
   );
 
-  // ✅ Preflight (OPTIONS) request ka instant response
+  // ✅ Preflight request instant close
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(204); // ✅ OPTIMIZED
   }
 
   next();
 });
 
 // ===============================
-// Security + Performance Middleware
+// ✅ SECURITY + PERFORMANCE
 // ===============================
 app.use(
   helmet({
@@ -47,7 +46,7 @@ app.use(
 
 app.use(compression());
 
-// ✅ Body parser – routes se pehle hona zaroori hai
+// ✅ Body parser — ROUTES se pehle
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
@@ -56,14 +55,14 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // ===============================
-// ✅ RECEIPT STATIC FILE SUPPORT
+// ✅ ✅ ✅ SAFE MONGODB CONNECTION (VERCEL FIXED)
 // ===============================
-app.use("/receipts", express.static(path.join(__dirname, "public/receipts")));
+let isDBConnected = false;
 
-// ===============================
-// ✅ CONNECT MONGODB
-// ===============================
-connectDB();
+if (!isDBConnected) {
+  connectDB();
+  isDBConnected = true;
+}
 
 // ===============================
 // ✅ API ROUTES
@@ -81,7 +80,7 @@ app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "🛍️ Saheli Store API Running Successfully",
-    version: "3.0.1",
+    version: "3.1.0",
     server: "Vercel Node Server",
     environment: process.env.NODE_ENV || "development",
     serverTime: new Date().toISOString(),
@@ -103,13 +102,18 @@ app.use((req, res) => {
 // ===============================
 app.use((err, req, res, next) => {
   console.error("❌ GLOBAL SERVER ERROR:", err);
+
   res.status(500).json({
     success: false,
     message: "Internal Server Error",
+    error:
+      process.env.NODE_ENV === "production"
+        ? undefined
+        : err.message,
   });
 });
 
 // ===============================
-// ✅ ✅ ✅ VERCEL EXPORT (FINAL & IMPORTANT)
+// ✅ ✅ ✅ FINAL EXPORT (MOST IMPORTANT FOR VERCEL)
 // ===============================
 module.exports = app;

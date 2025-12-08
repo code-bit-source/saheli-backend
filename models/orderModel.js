@@ -1,6 +1,6 @@
 // ==========================
 // File: models/orderModel.js
-// Saheli Store – FINAL Optimized Order Schema (FAST + SAFE + FILE BASED RECEIPT)
+// Saheli Store – FINAL VERCEL + PDF BUFFER SAFE VERSION ✅
 // ==========================
 
 const mongoose = require("mongoose");
@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema(
       phone: {
         type: String,
         required: [true, "Please add phone number"],
-        match: [/^[0-9]{10,11}$/, "Enter valid 10–11 digit phone number"],
+        match: [/^[6-9][0-9]{9}$/, "Enter valid Indian mobile number"],
         set: (val) => val.replace(/^0+/, ""),
       },
       email: {
@@ -41,9 +41,8 @@ const orderSchema = new mongoose.Schema(
     cartItems: [
       {
         productId: {
-          type: String,
-          required: true,
-          trim: true,
+          type: mongoose.Schema.Types.ObjectId, // ✅ FIXED
+          ref: "Product",
         },
         title: { type: String, trim: true },
         name: { type: String, trim: true },
@@ -77,9 +76,9 @@ const orderSchema = new mongoose.Schema(
       default: "Pending",
     },
 
-    // 🧾 RECEIPT (✅ FILE BASED – FAST & SAFE)
+    // 🧾 RECEIPT (✅ BUFFER BASED – VERCEL SAFE)
     receipt: {
-      pdfUrl: { type: String, default: null },   // ✅ URL only (NO BUFFER)
+      pdfBuffer: { type: Buffer, default: null },  
       createdAt: { type: Date, default: null },
     },
 
@@ -144,12 +143,10 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-// ✅ Auto exclude soft deleted items
-orderSchema.pre("find", function () {
+// ✅ Auto exclude soft-deleted items (FULL COVERAGE)
+orderSchema.pre(/^find/, function (next) {
   this.where({ isDeleted: false });
-});
-orderSchema.pre("findOne", function () {
-  this.where({ isDeleted: false });
+  next();
 });
 
 // ==========================

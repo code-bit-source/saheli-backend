@@ -1,12 +1,10 @@
 // ==========================
 // File: controllers/orderController.js
-// Saheli Store – FULL OPTIMIZED VERSION (FAST + SAFE + ALL FEATURES)
+// Saheli Store – FINAL FIXED + VERCEL SAFE VERSION ✅
 // ==========================
 
 const Order = require("../models/orderModel");
 const PDFDocument = require("pdfkit");
-const fs = require("fs");
-const path = require("path");
 
 // ===============================
 // GET ALL ORDERS (PAGINATION + FAST)
@@ -21,7 +19,7 @@ const getOrders = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("-receipt.pdf") // ✅ heavy buffer skip
+      .select("-receipt") // ✅ FIXED
       .lean();
 
     const total = await Order.countDocuments();
@@ -43,17 +41,16 @@ const getOrders = async (req, res) => {
 };
 
 // ===============================
-// GET SINGLE ORDER (FAST)
+// GET SINGLE ORDER
 // ===============================
 const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
-      .select("-receipt.pdf")
+      .select("-receipt")
       .lean();
 
-    if (!order) {
+    if (!order)
       return res.status(404).json({ success: false, message: "Order not found" });
-    }
 
     res.status(200).json({ success: true, order });
   } catch (error) {
@@ -66,7 +63,7 @@ const getOrderById = async (req, res) => {
 };
 
 // ===============================
-// CREATE ORDER (SAFE)
+// CREATE ORDER
 // ===============================
 const createOrder = async (req, res) => {
   try {
@@ -104,7 +101,6 @@ const createOrder = async (req, res) => {
       paymentMethod: paymentMethod || "Cash on Delivery",
       orderStatus: "Pending",
       paymentStatus: "Pending",
-      receipt: null,
     });
 
     const savedOrder = await newOrder.save();
@@ -124,20 +120,25 @@ const createOrder = async (req, res) => {
 };
 
 // ===============================
-// UPDATE ORDER
+// UPDATE ORDER (SAFE)
 // ===============================
 const updateOrder = async (req, res) => {
   try {
-    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    }).select("-receipt.pdf");
+    const allowed = ["orderStatus", "paymentStatus"];
+    const updates = {};
 
-    if (!updatedOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
+    allowed.forEach((key) => {
+      if (req.body[key]) updates[key] = req.body[key];
+    });
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true }
+    ).select("-receipt");
+
+    if (!updatedOrder)
+      return res.status(404).json({ success: false, message: "Order not found" });
 
     res.status(200).json({
       success: true,
@@ -158,16 +159,10 @@ const updateOrder = async (req, res) => {
 // ===============================
 const deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findByIdAndDelete(req.params.id);
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    await Order.findByIdAndDelete(req.params.id);
+    if (!order)
+      return res.status(404).json({ success: false, message: "Order not found" });
 
     res.status(200).json({
       success: true,
@@ -183,7 +178,7 @@ const deleteOrder = async (req, res) => {
 };
 
 // ===============================
-// GET BY STATUS (WITH LIMIT)
+// GET BY STATUS
 // ===============================
 const getOrdersByStatus = async (req, res) => {
   try {
@@ -192,7 +187,7 @@ const getOrdersByStatus = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(10)
-      .select("-receipt.pdf")
+      .select("-receipt")
       .lean();
 
     res.status(200).json({
@@ -210,27 +205,33 @@ const getOrdersByStatus = async (req, res) => {
 };
 
 // ===============================
-// GENERATE RECEIPT (FILE + URL)
+// GENERATE RECEIPT (BUFFER – VERCEL SAFE ✅)
 // ===============================
 const generateOrderReceipt = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
+    if (!order)
+      return res.status(404).json({ success: false, message: "Order not found" });
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    const receiptsDir = path.join(__dirname, "../public/receipts");
-    if (!fs.existsSync(receiptsDir)) fs.mkdirSync(receiptsDir, { recursive: true });
-
-    const filePath = path.join(receiptsDir, `Receipt_${order._id}.pdf`);
     const doc = new PDFDocument({ margin: 40 });
-    const stream = fs.createWriteStream(filePath);
+    let buffers = [];
 
-    doc.pipe(stream);
+    doc.on("data", buffers.push.bind(buffers));
+    doc.on("end", async () => {
+      const pdfData = Buffer.concat(buffers);
+
+      order.receipt = {
+        pdfBuffer: pdfData,
+        createdAt: new Date(),
+      };
+
+      await order.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Receipt generated successfully",
+      });
+    });
 
     doc.fontSize(22).text("Saheli Store", { align: "center" });
     doc.moveDown();
@@ -248,7 +249,7 @@ const generateOrderReceipt = async (req, res) => {
     doc.moveDown();
     doc.text("Items:", { underline: true });
 
-    order.cartItems.forEach((item, i) => {
+    (order.cartItems || []).forEach((item, i) => {
       doc.text(`${i + 1}. ${item.title} (x${item.qty}) — ₹${item.price * item.qty}`);
     });
 
@@ -259,21 +260,6 @@ const generateOrderReceipt = async (req, res) => {
     doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
 
     doc.end();
-
-    stream.on("finish", async () => {
-      order.receipt = {
-        pdfUrl: `/receipts/Receipt_${order._id}.pdf`,
-        createdAt: new Date(),
-      };
-
-      await order.save();
-
-      res.status(200).json({
-        success: true,
-        message: "Receipt generated successfully",
-        pdfUrl: order.receipt.pdfUrl,
-      });
-    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -284,29 +270,25 @@ const generateOrderReceipt = async (req, res) => {
 };
 
 // ===============================
-// DOWNLOAD RECEIPT (FROM FILE)
+// DOWNLOAD RECEIPT (BUFFER BASED ✅)
 // ===============================
 const downloadReceipt = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (!order?.receipt?.pdfUrl) {
+    if (!order?.receipt?.pdfBuffer) {
       return res.status(404).json({
         success: false,
         message: "Receipt not found",
       });
     }
 
-    const filePath = path.join(__dirname, "../public", order.receipt.pdfUrl);
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=Receipt_${order._id}.pdf`,
+    });
 
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        success: false,
-        message: "PDF file missing",
-      });
-    }
-
-    res.download(filePath);
+    res.send(order.receipt.pdfBuffer);
   } catch (error) {
     res.status(500).json({
       success: false,

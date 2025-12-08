@@ -1,6 +1,6 @@
 // ==========================
 // File: routes/orderRoutes.js
-// Saheli Store – FINAL SAFE VERSION (No Conflicts + Stable)
+// Saheli Store – FINAL VERCEL + BUFFER SAFE VERSION ✅
 // ==========================
 
 const express = require("express");
@@ -24,15 +24,14 @@ const {
 // 🔵 Create new order
 router.post("/", createOrder);
 
-// 🧾 Generate Receipt (Creates PDF + saves URL)
-router.get("/receipt/:id", generateOrderReceipt);
-
-// 🧾 Download Stored Receipt (From File System)
-// ✅ Ye route param se pehle hi rehna chahiye
+// 🧾 Download Receipt (BUFFER BASED – ✅ MUST COME FIRST)
 router.get("/receipt/download/:id", downloadReceipt);
 
+// 🧾 Generate Receipt (Creates PDF in DB BUFFER)
+router.get("/receipt/:id", generateOrderReceipt);
+
 // =======================================
-// ✅ ADMIN ROUTES
+// ✅ ADMIN ROUTES (Protect later with auth middleware)
 // =======================================
 
 // 📦 Get all orders (with pagination)
@@ -41,14 +40,13 @@ router.get("/", getOrders);
 // 🔎 Filter orders by status
 router.get("/status/:status", getOrdersByStatus);
 
-// 🟠 Update order
+// 🟠 Update order (Only status & payment allowed)
 router.put("/:id", updateOrder);
 
-// 🔴 Delete order
+// 🔴 Delete order (Soft delete recommended)
 router.delete("/:id", deleteOrder);
 
-// 📄 Get single order by ID
-// ✅ Ye hamesha SABSE LAST me hi rehna chahiye
+// 📄 Get single order by ID (⚠️ ALWAYS LAST)
 router.get("/:id", getOrderById);
 
 module.exports = router;
