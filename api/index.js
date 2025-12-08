@@ -1,5 +1,6 @@
 // ==========================
 // Saheli Store – FINAL SERVER ✅ (Vercel + Localhost 100% SAFE)
+// File Location: api/index.js
 // ==========================
 
 const express = require("express");
@@ -26,9 +27,8 @@ app.use((req, res, next) => {
     "Content-Type, Authorization"
   );
 
-  // ✅ Preflight request instant close
   if (req.method === "OPTIONS") {
-    return res.sendStatus(204); // ✅ OPTIMIZED
+    return res.sendStatus(204);
   }
 
   next();
@@ -46,7 +46,7 @@ app.use(
 
 app.use(compression());
 
-// ✅ Body parser — ROUTES se pehle
+// ✅ Body parser
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
@@ -55,7 +55,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // ===============================
-// ✅ ✅ ✅ SAFE MONGODB CONNECTION (VERCEL FIXED)
+// ✅ ✅ ✅ SAFE MONGODB CONNECTION
 // ===============================
 let isDBConnected = false;
 
@@ -65,13 +65,18 @@ if (!isDBConnected) {
 }
 
 // ===============================
-// ✅ API ROUTES
+// ✅ API ROUTES (⚠️ IMPORTANT FIX HERE)
 // ===============================
 const productRoutes = require("../routes/productRoutes");
 const orderRoutes = require("../routes/orderRoutes");
 
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
+// ❌ OLD (galat):
+// app.use("/api/products", productRoutes);
+// app.use("/api/orders", orderRoutes);
+
+// ✅ NEW (100% Vercel Correct):
+app.use("/products", productRoutes); // FINAL → /api/products
+app.use("/orders", orderRoutes);     // FINAL → /api/orders
 
 // ===============================
 // ✅ ROOT ROUTE (HEALTH CHECK)
@@ -79,11 +84,18 @@ app.use("/api/orders", orderRoutes);
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "🛍️ Saheli Store API Running Successfully",
-    version: "3.1.0",
+    message: "✅ Saheli Store API Root Working",
     server: "Vercel Node Server",
     environment: process.env.NODE_ENV || "development",
-    serverTime: new Date().toISOString(),
+    time: new Date().toISOString(),
+  });
+});
+
+// ✅ Optional Base API Test
+app.get("/api", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "✅ Saheli Store API Base Working",
   });
 });
 
@@ -114,10 +126,6 @@ app.use((err, req, res, next) => {
 });
 
 // ===============================
-// ✅ ✅ ✅ FINAL EXPORT (MOST IMPORTANT FOR VERCEL)
+// ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL SERVERLESS)
 // ===============================
-module.exports = (req, res) => {
-  app(req, res);
-};
-
- 
+module.exports = app;
