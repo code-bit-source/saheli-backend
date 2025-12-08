@@ -1,6 +1,7 @@
 // ==========================
-// Saheli Store – FINAL SERVER ✅ (Vercel + Localhost 100% SAFE)
+// Saheli Store – FINAL SERVER ✅
 // File Location: api/index.js
+// Works on: Vercel + Localhost
 // ==========================
 
 const express = require("express");
@@ -14,7 +15,7 @@ dotenv.config();
 const app = express();
 
 // ===============================
-// ✅ ✅ ✅ FULL CORS FIX (VERCEL SAFE + PREFLIGHT SAFE)
+// ✅ CORS SETUP (VERCEL SAFE)
 // ===============================
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -65,21 +66,16 @@ if (!isDBConnected) {
 }
 
 // ===============================
-// ✅ API ROUTES (⚠️ IMPORTANT FIX HERE)
+// ✅ API ROUTES (NO EXTRA /api HERE ❗)
 // ===============================
-const productRoutes = require("../routes/productRoutes");
-const orderRoutes = require("../routes/orderRoutes");
+const productRoutes = require("../routes/productRoutes.js");
+const orderRoutes = require("../routes/orderRoutes.js");
 
-// ❌ OLD (galat):
-// app.use("/api/products", productRoutes);
-// app.use("/api/orders", orderRoutes);
-
-// ✅ NEW (100% Vercel Correct):
-app.use("/products", productRoutes); // FINAL → /api/products
-app.use("/orders", orderRoutes);     // FINAL → /api/orders
+app.use("/products", productRoutes); // ✅ FINAL URL → /api/products
+app.use("/orders", orderRoutes);     // ✅ FINAL URL → /api/orders
 
 // ===============================
-// ✅ ROOT ROUTE (HEALTH CHECK)
+// ✅ ROOT ROUTE (OPTIONAL HEALTH CHECK)
 // ===============================
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -88,14 +84,6 @@ app.get("/", (req, res) => {
     server: "Vercel Node Server",
     environment: process.env.NODE_ENV || "development",
     time: new Date().toISOString(),
-  });
-});
-
-// ✅ Optional Base API Test
-app.get("/api", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "✅ Saheli Store API Base Working",
   });
 });
 
