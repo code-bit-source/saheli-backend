@@ -101,7 +101,9 @@ const createProduct = async (req, res) => {
   try {
     const data = req.body;
 
-    if (!data.title || data.price === undefined || isNaN(Number(data.price))) {
+    const rawPrice = String(data.price).replace(/,/g, "");
+
+    if (!data.title || rawPrice === undefined || isNaN(Number(rawPrice))) {
       return res.status(400).json({
         success: false,
         message: "Please provide valid title & price",
@@ -110,14 +112,14 @@ const createProduct = async (req, res) => {
 
     const newProduct = new Product({
       title: data.title.trim(),
-      price: Number(data.price),
+      price: Number(rawPrice),
       stock: Number(data.stock) || 10,
       category: data.category?.trim() || "Uncategorized",
       description: data.description?.trim() || "",
       image:
-  data.image?.trim() ||
-  "https://via.placeholder.com/300x200.png?text=Saheli+Product",
-
+        data.image && data.image.trim().length > 0
+          ? data.image.trim()
+          : "https://via.placeholder.com/300x200.png?text=Saheli+Product",
       recommended: !!data.recommended,
       bestSeller: !!data.bestSeller,
       discount: Math.max(0, Math.min(100, Number(data.discount) || 0)),
@@ -126,11 +128,9 @@ const createProduct = async (req, res) => {
 
     const savedProduct = await newProduct.save();
 
-    productCache.clear(); // ✅ cache reset
-
     return res.status(201).json({
       success: true,
-      message: "Product added successfully!",
+      message: "✅ Product added successfully!",
       product: savedProduct,
     });
   } catch (error) {
