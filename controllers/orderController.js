@@ -128,7 +128,7 @@ const createOrder = async (req, res) => {
 // ===============================
 const updateOrder = async (req, res) => {
   try {
-    const allowed = ["orderStatus", "paymentStatus"];
+    const allowed = ["orderStatus", "paymentStatus", "paymentMethod"]; // ✅ FIX
     const updates = {};
 
     allowed.forEach((key) => {
@@ -159,6 +159,7 @@ const updateOrder = async (req, res) => {
     });
   }
 };
+
 
 // ===============================
 // ✅ DELETE ORDER (SOFT DELETE SAFE)
