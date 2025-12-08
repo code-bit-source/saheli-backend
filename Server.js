@@ -116,5 +116,8 @@ app.use((err, req, res, next) => {
 // ===============================
 // ✅ ✅ ✅ FINAL EXPORT (MOST IMPORTANT FOR VERCEL)
 // ===============================
-module.exports = app;
-// app.listen(3000)
+module.exports = (req, res) => {
+  app(req, res);
+};
+
+ 
