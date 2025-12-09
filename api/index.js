@@ -9,14 +9,29 @@ const dotenv = require("dotenv");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
+const cors = require("cors"); // ✅ MERGED
 const connectDB = require("../config/db");
 
 dotenv.config();
 const app = express();
 
 // ===============================
-// ✅ CORS SETUP (VERCEL SAFE)
+// ✅ ✅ ✅ CORS SETUP (MERGED: MANUAL + MIDDLEWARE)
 // ===============================
+
+// ✅ 1️⃣ PRODUCTION SAFE CORS MIDDLEWARE
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://saheli-store.vercel.app", // ✅ apna frontend domain
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// ✅ 2️⃣ TERI EXISTING MANUAL HEADER CORS (UNCHANGED)
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -36,7 +51,7 @@ app.use((req, res, next) => {
 });
 
 // ===============================
-// ✅ SECURITY + PERFORMANCE
+// ✅ SECURITY + PERFORMANCE (UNCHANGED)
 // ===============================
 app.use(
   helmet({
@@ -47,7 +62,7 @@ app.use(
 
 app.use(compression());
 
-// ✅ Body parser
+// ✅ Body parser (UNCHANGED)
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -56,7 +71,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // ===============================
-// ✅ ✅ ✅ SAFE MONGODB CONNECTION
+// ✅ ✅ ✅ SAFE MONGODB CONNECTION (UNCHANGED)
 // ===============================
 let isDBConnected = false;
 
@@ -66,19 +81,16 @@ if (!isDBConnected) {
 }
 
 // ===============================
-// ✅ ✅ ✅ API ROUTES (FINAL & CORRECT)
+// ✅ ✅ ✅ API ROUTES (UNCHANGED)
 // ===============================
 const productRoutes = require("../routes/productRoutes.js");
 const orderRoutes = require("../routes/orderRoutes.js");
 
-// ✅ FINAL URLs:
-// https://your-app.vercel.app/api/products
-// https://your-app.vercel.app/api/orders
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 
 // ===============================
-// ✅ ROOT ROUTE (HEALTH CHECK)
+// ✅ ROOT ROUTE (UNCHANGED)
 // ===============================
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -91,7 +103,7 @@ app.get("/", (req, res) => {
 });
 
 // ===============================
-// ✅ 404 HANDLER
+// ✅ 404 HANDLER (UNCHANGED)
 // ===============================
 app.use((req, res) => {
   res.status(404).json({
@@ -101,7 +113,7 @@ app.use((req, res) => {
 });
 
 // ===============================
-// ✅ GLOBAL ERROR HANDLER
+// ✅ GLOBAL ERROR HANDLER (UNCHANGED)
 // ===============================
 app.use((err, req, res, next) => {
   console.error("❌ GLOBAL SERVER ERROR:", err);
@@ -118,7 +130,5 @@ app.use((err, req, res, next) => {
 
 // ===============================
 // ✅ ✅ ✅ FINAL EXPORT (FOR VERCEL)
-// ❌ app.listen() YAHAN **BILKUL NAHI** HOGA
 // ===============================
-
 module.exports = app;
