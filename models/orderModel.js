@@ -1,6 +1,6 @@
 // ==========================
 // File: models/orderModel.js
-// Saheli Store – FINAL VERCEL + SAFE VERSION ✅
+// Saheli Store – FINAL VERCEL + PDF BUFFER SAFE VERSION ✅
 // ==========================
 
 const mongoose = require("mongoose");
@@ -37,33 +37,32 @@ const orderSchema = new mongoose.Schema(
       },
     },
 
-    // 🛒 CART ITEMS (✅ PRODUCT ID CRASH FIXED)
+    // 🛒 CART ITEMS
     cartItems: [
       {
         productId: {
-          type: mongoose.Schema.Types.Mixed, // ✅ SAFE: string + ObjectId both
-          default: null,
+          type: mongoose.Schema.Types.ObjectId, // ✅ FIXED
+          ref: "Product",
         },
         title: { type: String, trim: true },
         name: { type: String, trim: true },
         price: { type: Number, required: true, min: 0 },
         qty: { type: Number, required: true, min: 1, default: 1 },
-        image: { type: String, default: "" }, // ✅ base64 + url safe
+        image: { type: String, default: "" },
       },
     ],
 
-    // 💰 PAYMENT INFO (✅ ENUM CRASH FIXED)
+    // 💰 PAYMENT INFO
     totalPrice: {
       type: Number,
       required: true,
       min: 0,
     },
-
     paymentMethod: {
       type: String,
-      default: "Cash on Delivery", // ✅ HAR TYPE SAFE
+      enum: ["Cash on Delivery", "online payment" ],
+      default: "online payment",
     },
-
     paymentStatus: {
       type: String,
       enum: ["Pending", "Paid", "Refunded"],
@@ -79,7 +78,7 @@ const orderSchema = new mongoose.Schema(
 
     // 🧾 RECEIPT (✅ BUFFER BASED – VERCEL SAFE)
     receipt: {
-      pdfBuffer: { type: Buffer, default: null },
+      pdfBuffer: { type: Buffer, default: null },  
       createdAt: { type: Date, default: null },
     },
 
@@ -131,7 +130,7 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-// ✅ Normalize cart items before save (✅ FULL SAFE)
+// ✅ Normalize cart items before save
 orderSchema.pre("save", function (next) {
   if (Array.isArray(this.cartItems)) {
     this.cartItems = this.cartItems.map((item) => ({
@@ -139,13 +138,12 @@ orderSchema.pre("save", function (next) {
       name: item.name || item.title || "Unnamed Product",
       price: Number(item.price) || 0,
       qty: Number(item.qty) || 1,
-      image: item.image || "",
     }));
   }
   next();
 });
 
-// ✅ Auto exclude soft-deleted items
+// ✅ Auto exclude soft-deleted items (FULL COVERAGE)
 orderSchema.pre(/^find/, function (next) {
   this.where({ isDeleted: false });
   next();
