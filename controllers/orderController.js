@@ -72,6 +72,8 @@ const getOrderById = async (req, res) => {
 // ===============================
 const createOrder = async (req, res) => {
   try {
+    console.log("✅ ORDER BODY RECEIVED:", req.body); // 🔥 DEBUG
+
     const { customer, cartItems, items, totalPrice, paymentMethod } = req.body;
 
     const finalItems = Array.isArray(cartItems)
@@ -88,15 +90,17 @@ const createOrder = async (req, res) => {
       !address?.line1 ||
       !Array.isArray(finalItems) ||
       finalItems.length === 0 ||
-      !totalPrice
+      typeof totalPrice !== "number"
     ) {
       return res.status(400).json({
         success: false,
-        message: "Missing customer details, cart items, or total price",
+        message: "Validation failed",
+        customer,
+        finalItems,
+        totalPrice,
       });
     }
 
-    // ✅ SANITIZE CART ITEMS (NO CRASH GUARANTEE)
     const safeItems = finalItems.map((item) => ({
       productId: item.productId || null,
       title: item.title || item.name || "Product",
@@ -110,7 +114,6 @@ const createOrder = async (req, res) => {
       customer: {
         name: customer.name,
         phone: customer.phone,
-        email: customer.email || "",
         address: {
           line1: address.line1,
           city: address.city || "",
@@ -121,27 +124,25 @@ const createOrder = async (req, res) => {
       cartItems: safeItems,
       totalPrice: Number(totalPrice),
       paymentMethod: paymentMethod || "Cash on Delivery",
-      orderStatus: "Pending",
-      paymentStatus: "Pending",
-      isDeleted: false,
     });
 
     const savedOrder = await newOrder.save();
 
     res.status(201).json({
       success: true,
-      message: "Order placed successfully!",
       order: savedOrder,
     });
   } catch (error) {
-    console.error("❌ CREATE ORDER ERROR:", error.message);
+    console.error("🔥 CREATE ORDER FULL ERROR:", error); // 🔥 FULL LOG
+
     res.status(500).json({
       success: false,
-      message: "Failed to create order",
-      error: error.message,
+      message: error.message || "Unknown server error",
+      stack: error.stack,
     });
   }
 };
+
 
 // ===============================
 // ✅ UPDATE ORDER (SAFE)
