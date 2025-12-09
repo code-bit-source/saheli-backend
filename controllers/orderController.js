@@ -32,6 +32,7 @@ const getOrders = async (req, res) => {
       orders,
     });
   } catch (error) {
+    console.error("❌ GET ORDERS ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to fetch orders",
@@ -57,6 +58,7 @@ const getOrderById = async (req, res) => {
 
     res.status(200).json({ success: true, order });
   } catch (error) {
+    console.error("❌ GET ORDER BY ID ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to fetch order",
@@ -66,13 +68,18 @@ const getOrderById = async (req, res) => {
 };
 
 // ===============================
-// ✅ CREATE ORDER
+// ✅ CREATE ORDER (🔥 FULLY SAFE + 500 FIXED)
 // ===============================
 const createOrder = async (req, res) => {
   try {
     const { customer, cartItems, items, totalPrice, paymentMethod } = req.body;
 
-    const finalItems = cartItems || items;
+    const finalItems = Array.isArray(cartItems)
+      ? cartItems
+      : Array.isArray(items)
+      ? items
+      : [];
+
     const address = customer?.address || customer;
 
     if (
@@ -80,18 +87,30 @@ const createOrder = async (req, res) => {
       !customer?.phone ||
       !address?.line1 ||
       !Array.isArray(finalItems) ||
-      finalItems.length === 0
+      finalItems.length === 0 ||
+      !totalPrice
     ) {
       return res.status(400).json({
         success: false,
-        message: "Missing customer details or cart items",
+        message: "Missing customer details, cart items, or total price",
       });
     }
+
+    // ✅ SANITIZE CART ITEMS (NO CRASH GUARANTEE)
+    const safeItems = finalItems.map((item) => ({
+      productId: item.productId || null,
+      title: item.title || item.name || "Product",
+      name: item.name || item.title || "Product",
+      price: Number(item.price) || 0,
+      qty: Number(item.qty) || 1,
+      image: item.image || "",
+    }));
 
     const newOrder = new Order({
       customer: {
         name: customer.name,
         phone: customer.phone,
+        email: customer.email || "",
         address: {
           line1: address.line1,
           city: address.city || "",
@@ -99,8 +118,8 @@ const createOrder = async (req, res) => {
           pincode: address.pincode || "",
         },
       },
-      cartItems: finalItems,
-      totalPrice,
+      cartItems: safeItems,
+      totalPrice: Number(totalPrice),
       paymentMethod: paymentMethod || "Cash on Delivery",
       orderStatus: "Pending",
       paymentStatus: "Pending",
@@ -115,6 +134,7 @@ const createOrder = async (req, res) => {
       order: savedOrder,
     });
   } catch (error) {
+    console.error("❌ CREATE ORDER ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to create order",
@@ -124,11 +144,11 @@ const createOrder = async (req, res) => {
 };
 
 // ===============================
-// ✅ UPDATE ORDER (BUG FIXED)
+// ✅ UPDATE ORDER (SAFE)
 // ===============================
 const updateOrder = async (req, res) => {
   try {
-    const allowed = ["orderStatus", "paymentStatus", "paymentMethod"]; // ✅ FIX
+    const allowed = ["orderStatus", "paymentStatus", "paymentMethod"];
     const updates = {};
 
     allowed.forEach((key) => {
@@ -152,6 +172,7 @@ const updateOrder = async (req, res) => {
       order: updatedOrder,
     });
   } catch (error) {
+    console.error("❌ UPDATE ORDER ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to update order",
@@ -159,7 +180,6 @@ const updateOrder = async (req, res) => {
     });
   }
 };
-
 
 // ===============================
 // ✅ DELETE ORDER (SOFT DELETE SAFE)
@@ -180,6 +200,7 @@ const deleteOrder = async (req, res) => {
       message: "Order deleted successfully (soft)",
     });
   } catch (error) {
+    console.error("❌ DELETE ORDER ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to delete order",
@@ -208,6 +229,7 @@ const getOrdersByStatus = async (req, res) => {
       orders,
     });
   } catch (error) {
+    console.error("❌ GET BY STATUS ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to fetch filtered orders",
@@ -274,6 +296,7 @@ const generateOrderReceipt = async (req, res) => {
 
     doc.end();
   } catch (error) {
+    console.error("❌ GENERATE RECEIPT ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to generate receipt",
@@ -306,6 +329,7 @@ const downloadReceipt = async (req, res) => {
 
     res.send(order.receipt.pdfBuffer);
   } catch (error) {
+    console.error("❌ DOWNLOAD RECEIPT ERROR:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to download receipt",
