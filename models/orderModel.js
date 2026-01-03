@@ -17,12 +17,21 @@ const orderSchema = new mongoose.Schema(
         required: [true, "Please add customer name"],
         trim: true,
       },
-      phone: {
-        type: String,
-        required: [true, "Please add phone number"],
-        match: [/^[6-9][0-9]{9}$/, "Enter valid Indian mobile number"],
-        set: (val) => val.replace(/^0+/, ""),
-      },
+     phone: {
+  type: String,
+  required: [true, "Please add phone number"],
+  set: (val) =>
+    val
+      .replace(/\D/g, "")   // +, space, - sab hatao
+      .replace(/^0+/, ""),  // starting zeros hatao
+  validate: {
+    validator: function (v) {
+      return v.length >= 10;
+    },
+    message: "Phone number must contain at least 10 digits",
+  },
+},
+
       email: {
         type: String,
         trim: true,
